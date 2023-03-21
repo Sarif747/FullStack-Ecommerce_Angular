@@ -16,6 +16,7 @@ import { CheckoutService } from 'src/app/services/checkout.service';
 import { EcommerceShopFormService } from 'src/app/services/ecommerce-shop-form.service';
 import { EcommerceShopValidators } from 'src/app/validators/ecommerce-shop-validators';
 
+/// first commit
 @Component({
   selector: 'app-checkout',
   templateUrl: './checkout.component.html',
