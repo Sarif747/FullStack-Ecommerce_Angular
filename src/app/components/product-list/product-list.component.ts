@@ -16,7 +16,7 @@ export class ProductListComponent implements OnInit {
   searchMode: boolean = false;
   previousCategoryId: number = 1;
   previousKeyword: string = '';
-  //new properties
+
   thePageNumber: number = 1;
   thePageSize: number = 5;
   theTotalElements: number = 0;
@@ -67,7 +67,6 @@ export class ProductListComponent implements OnInit {
     } else {
       this.currentCategoryId = 1;
     }
-    //check if we have diffrent category than previous one
     if (this.previousCategoryId != this.currentCategoryId) {
       this.thePageNumber = 1;
     }

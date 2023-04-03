@@ -22,24 +22,18 @@ export class CartService {
   }
 
   addToCart(theCartItem: CartItem) {
-    //check if we already have the item in cart
-
     let alreadyExitsInCart: boolean = false;
     let existingCartItem: CartItem | undefined = undefined;
 
-    // find the item in cart based on item id
     if (this.cartItems.length > 0) {
       existingCartItem = this.cartItems.find(
         (tempCartItem) => tempCartItem.id === theCartItem.id
       );
     }
 
-    //check if we found it
     if (existingCartItem !== undefined) {
-      //increment the quantity
       existingCartItem.quantity++;
     } else {
-      //just add the item to array
       this.cartItems.push(theCartItem);
     }
     this.computeCartTotals();
@@ -53,7 +47,6 @@ export class CartService {
       totalPriceValue += currentCartItem.quantity * currentCartItem.unitPrice;
       totalQuantityValue += currentCartItem.quantity;
     }
-    // publish the new values all subscribers will recieve the new data
     this.totalPrice.next(totalPriceValue);
     this.totalQuantity.next(totalQuantityValue);
 

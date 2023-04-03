@@ -367,6 +367,7 @@
           </div>
         </div>
         <!--credit card-->
+        <!--
         <div formGroupName="creditCard" class="form-area">
           <h3>Credit Card</h3>
           <div class="row">
@@ -492,7 +493,19 @@
               </div>
             </div>
           </div>
+        </div>-->
+
+        <!-- Strip element Credit Card section-->
+
+        <div formGroupName="creditcard" class="form-area">
+          <h3>Credit or Debit Card</h3>
+          <div id="card-element"></div>
+          <div
+            id="card-errors"
+            class="displayError.testContent!=='': 'alert alert-danger mt-1'"
+          ></div>
         </div>
+
         <!--Order details-->
         <div clas="form-area">
           <h3>Review Your Order</h3>
@@ -502,7 +515,9 @@
         </div>
         <!-- submit button-->
         <div class="text-center">
-          <button type="submit" class="btn btn-info">Purchase</button>
+          <button type="submit" class="btn btn-info" [disabled]="isDisabled">
+            Purchase
+          </button>
         </div>
       </form>
     </div>

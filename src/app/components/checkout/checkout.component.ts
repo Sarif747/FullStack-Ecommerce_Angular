@@ -9,12 +9,14 @@ import { Router } from '@angular/router';
 import { Country } from 'src/app/common/country';
 import { Order } from 'src/app/common/order';
 import { OrderItem } from 'src/app/common/order-item';
+import { PaymentInfo } from 'src/app/common/payment-info';
 import { Purchase } from 'src/app/common/purchase';
 import { State } from 'src/app/common/state';
 import { CartService } from 'src/app/services/cart.service';
 import { CheckoutService } from 'src/app/services/checkout.service';
 import { EcommerceShopFormService } from 'src/app/services/ecommerce-shop-form.service';
 import { EcommerceShopValidators } from 'src/app/validators/ecommerce-shop-validators';
+import { environment } from 'src/environments/environment';
 /////
 ////// second commit
 @Component({
@@ -38,6 +40,13 @@ export class CheckoutComponent implements OnInit {
 
   storage: Storage = sessionStorage;
 
+  stripe = Stripe(environment.stripePublishableKey);
+  paymentInfo: PaymentInfo = new PaymentInfo();
+  cardElement: any;
+  displayError: any = '';
+
+  isDisabled: boolean = false;
+
   constructor(
     private formBuilder: FormBuilder,
     private ecommerceShopFormService: EcommerceShopFormService,
@@ -47,6 +56,7 @@ export class CheckoutComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.setupStripePaymentForm();
     this.reviewCartDetails();
 
     const theEmail = JSON.parse(this.storage.getItem('userEmail'));
@@ -124,6 +134,7 @@ export class CheckoutComponent implements OnInit {
         ]),
       }),
       creditCard: this.formBuilder.group({
+        /*
         cardType: new FormControl('', [Validators.required]),
         nameOnCard: new FormControl('', [
           Validators.required,
@@ -140,9 +151,10 @@ export class CheckoutComponent implements OnInit {
         ]),
         expirationMonth: [''],
         expirationYear: [''],
+        */
       }),
     });
-
+    /*
     const startMonth: number = new Date().getMonth() + 1;
     console.log(' startMonth' + startMonth);
 
@@ -156,9 +168,29 @@ export class CheckoutComponent implements OnInit {
       console.log(' Retrived credit card years:' + JSON.stringify(data));
       this.creditCardYears = data;
     });
+
+    */
     this.ecommerceShopFormService.getCountries().subscribe((data) => {
       console.log('Retrived countries:' + JSON.stringify(data));
       this.countries = data;
+    });
+  }
+
+  setupStripePaymentForm() {
+    var elements = this.stripe.elements();
+
+    this.cardElement = elements.create('card', { hidePostalCode: true });
+
+    this.cardElement.mount('#card-element');
+
+    this.cardElement.on('change', (event: any) => {
+      this.displayError = document.getElementById('card-errors');
+
+      if (event.complete) {
+        this.displayError.textContent = '';
+      } else if (event.error) {
+        this.displayError.textContent = event.error.message;
+      }
     });
   }
 
@@ -287,6 +319,12 @@ export class CheckoutComponent implements OnInit {
     purchase.order = order;
     purchase.orderItems = orderItems;
 
+    this.paymentInfo.amount = Math.round(this.totalPrice * 100);
+    this.paymentInfo.currency = 'USD';
+    console.log(this.paymentInfo.amount);
+    this.paymentInfo.receiptEmail = purchase.customer.email;
+
+    /*
     this.checkoutService.placeOrder(purchase).subscribe({
       next: (response) => {
         alert(
@@ -299,17 +337,75 @@ export class CheckoutComponent implements OnInit {
         alert(`There was an error: ${err.message}`);
       },
     });
+    */
+    if (
+      !this.checkoutFormGroup.invalid &&
+      this.displayError.textContent === ''
+    ) {
+      this.isDisabled = true;
+      this.checkoutService
+        .createPaymentIntent(this.paymentInfo)
+        .subscribe((paymentIntentResponse) => {
+          this.stripe
+            .confirmCardPayment(
+              paymentIntentResponse.client_secret,
+              {
+                payment_method: {
+                  card: this.cardElement,
+                  billing_details: {
+                    email: purchase.customer.email,
+                    name: `${purchase.customer.firstName} ${purchase.customer.lastName}`,
+                    address: {
+                      line1: purchase.billingAddress.street,
+                      city: purchase.billingAddress.city,
+                      state: purchase.billingAddress.state,
+                      postal_code: purchase.billingAddress.zipCode,
+                      country: this.billingAddressCountry.value.code,
+                    },
+                  },
+                },
+              },
+              { handleActions: false }
+            )
+            .then((result: any) => {
+              if (result.error) {
+                // inform the customer there was an error
+                alert(`There was an error: ${result.error.message}`);
+                this.isDisabled = false;
+              } else {
+                // call REST API via the CheckoutService
+                this.checkoutService.placeOrder(purchase).subscribe({
+                  next: (response: any) => {
+                    alert(
+                      `Your order has been received.\nOrder tracking number: ${response.orderTrackingNumber}`
+                    );
+                    // reset cart
+                    this.resetCart();
+                  },
+                  error: (err: any) => {
+                    alert(`There was an error: ${err.message}`);
+                    this.isDisabled = false;
+                  },
+                });
+              }
+            });
+        });
+    } else {
+      this.checkoutFormGroup.markAllAsTouched();
+      return;
+    }
   }
+
   resetCart() {
     this.cartService.cartItems = [];
     this.cartService.totalPrice.next(0);
     this.cartService.totalQuantity.next(0);
-
+    this.cartService.persistCartItems();
     this.checkoutFormGroup.reset();
 
     this.router.navigateByUrl('/products');
   }
-
+  /*
   handleMonthsAndYears() {
     const creditCardFormGroup = this.checkoutFormGroup.get('creditCard');
     const currentYear: number = new Date().getFullYear();
@@ -331,6 +427,7 @@ export class CheckoutComponent implements OnInit {
         this.creditCardMonths = data;
       });
   }
+  */
 
   getStates(formGroupName: string) {
     const formGroup = this.checkoutFormGroup.get(formGroupName);
